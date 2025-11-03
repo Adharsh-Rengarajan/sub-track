@@ -152,7 +152,7 @@ JWT_EXPIRE=30d
 ## Installation and Setup
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/subtrak.git
+git clone https://github.com/Adharsh-Rengarajan/subtrak.git
 
 # Install backend dependencies
 cd subtrak/server
