@@ -5,15 +5,15 @@ SubTrak is a real-time subscription intelligence app that helps users detect and
 ## Features
 
 ### Core Features 
-- **User Authentication** - JWT-based secure authentication system
+- **User Authentication** - JWT-based secure authentication with refresh tokens
 - **Subscription Management** - Add, edit, delete, and view subscriptions
-- **Renewal Alerts** - Real-time notifications for upcoming renewals
+- **Renewal Tracking** - Monitor upcoming subscription renewals
 - **Cost Analytics** - Monthly and yearly spending breakdown
 - **Duplicate Detection** - Identify potential duplicate subscriptions
 - **Category Organization** - Group subscriptions by type (Entertainment, Software, etc.)
 - **Dashboard Overview** - Quick stats and upcoming renewals at a glance
 
-## System Architecture
+## System Architecture - Backend
 ```mermaid
 classDiagram
     class User {
@@ -21,12 +21,14 @@ classDiagram
         +String email
         +String password
         +String name
+        +String tokenVersion
+        +String refreshToken
         +Date createdAt
         +Date updatedAt
-        +register()
-        +login()
-        +generateAuthToken()
+        +generateTokens()
         +validatePassword()
+        +validateRefreshToken()
+        +revokeAllTokens()
     }
 
     class Subscription {
@@ -41,24 +43,13 @@ classDiagram
         +Boolean isActive
         +Date createdAt
         +Date updatedAt
-        +create()
-        +update()
-        +delete()
         +calculateNextRenewal()
     }
 
     class AuthMiddleware {
         +verifyToken()
-        +generateToken()
-        +refreshToken()
-    }
-
-    class NotificationService {
-        +String userId
-        +Array~Subscription~ subscriptions
-        +checkUpcomingRenewals()
-        +sendAlert()
-        +scheduleNotifications()
+        +authenticate()
+        +handleValidationErrors()
     }
 
     class AnalyticsService {
@@ -67,6 +58,7 @@ classDiagram
         +calculateYearlySpend()
         +getCategoryBreakdown()
         +detectDuplicates()
+        +getUpcomingRenewals()
     }
 
     class RedisCache {
@@ -75,13 +67,12 @@ classDiagram
         +set()
         +del()
         +expire()
+        +setex()
     }
 
     User "1" --> "*" Subscription : owns
-    Subscription --> NotificationService : triggers
     Subscription --> AnalyticsService : analyzed by
     AuthMiddleware --> User : validates
-    NotificationService --> RedisCache : uses
     AnalyticsService --> RedisCache : uses
 ```
 
@@ -91,28 +82,31 @@ All endpoints except `/auth/register` and `/auth/login` require JWT authenticati
 
 ### Authentication Endpoints
 ```
-POST   /api/auth/register     - Register new user
-POST   /api/auth/login        - Login user
-POST   /api/auth/refresh      - Refresh JWT token
-GET    /api/auth/profile      - Get user profile (Protected)
-PUT    /api/auth/profile      - Update user profile (Protected)
+POST   /api/auth/register          - Register new user
+POST   /api/auth/login             - Login user
+POST   /api/auth/refresh           - Refresh JWT token
+POST   /api/auth/logout            - Logout current session (Protected)
+POST   /api/auth/logout-all        - Logout all devices (Protected)
+POST   /api/auth/change-password   - Change password (Protected)
+GET    /api/auth/profile           - Get user profile (Protected)
+PUT    /api/auth/profile           - Update user profile (Protected)
 ```
 
 ### Subscription Endpoints
 ```
-GET    /api/subscriptions     - Get all user subscriptions (Protected)
-POST   /api/subscriptions     - Create new subscription (Protected)
-GET    /api/subscriptions/:id - Get single subscription (Protected)
-PUT    /api/subscriptions/:id - Update subscription (Protected)
-DELETE /api/subscriptions/:id - Delete subscription (Protected)
+GET    /api/subscriptions          - Get all user subscriptions (Protected)
+POST   /api/subscriptions          - Create new subscription (Protected)
+GET    /api/subscriptions/:id      - Get single subscription (Protected)
+PUT    /api/subscriptions/:id      - Update subscription (Protected)
+DELETE /api/subscriptions/:id      - Delete subscription (Protected)
 ```
 
 ### Analytics Endpoints
 ```
-GET    /api/analytics/summary     - Get spending summary (Protected)
-GET    /api/analytics/categories  - Get category breakdown (Protected)
-GET    /api/analytics/duplicates  - Check for duplicate subscriptions (Protected)
-GET    /api/analytics/upcoming    - Get upcoming renewals (Protected)
+GET    /api/analytics/summary      - Get spending summary (Protected)
+GET    /api/analytics/categories   - Get category breakdown (Protected)
+GET    /api/analytics/duplicates   - Check for duplicate subscriptions (Protected)
+GET    /api/analytics/upcoming     - Get upcoming renewals (Protected)
 ```
 
 ## Tech Stack
@@ -146,16 +140,16 @@ PORT=5000
 MONGODB_URI=mongodb://localhost:27017/subtrak
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRE=30d
+JWT_EXPIRE=1h
 ```
 
 ## Installation and Setup
 ```bash
 # Clone the repository
-git clone https://github.com/Adharsh-Rengarajan/subtrak.git
+git clone https://github.com/yourusername/subtrak.git
 
 # Install backend dependencies
-cd subtrak/server
+cd subtrak/backend
 npm install
 
 # Install frontend dependencies
@@ -185,5 +179,5 @@ npm start
 2. Login to receive JWT token
 3. Add subscriptions with renewal dates
 4. View dashboard for spending analytics
-5. Get alerts for upcoming renewals
+5. Monitor upcoming renewals
 6. Detect and manage duplicate subscriptions
